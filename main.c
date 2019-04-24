@@ -25,6 +25,7 @@
 
 void display_temp(uint8_t x);			//zmienna do wyswietlania pomiarow
 void heating (void);					// deklaracja funkcji do nagrzewania
+void mieszanie(void);					//deklaracja funkcji mieszania
 uint8_t i,x ;
 struct{									// struktury do obslugi menu 1 i 2 pozinmu
 	uint8_t menu:4;
@@ -32,6 +33,7 @@ struct{									// struktury do obslugi menu 1 i 2 pozinmu
 	uint8_t start:1;
 }idx;
 uint8_t regTemp;						// zmienna do regulacji temperatury
+uint8_t przemieszaj;					// zmienna okreslajaca czestotliwosc mieszania
 uint8_t czujnik_cnt;					// liczna podlaczanych czujnkikow
 volatile uint8_t s1_flag , ms330_flag;				// flaga sekund i 330ms
 volatile uint8_t sekundy;				// zmienna odliczajaca sekundy
@@ -75,6 +77,8 @@ czujnik_cnt = search_sensors();
 //DS18X20_start_meas(DS19X20_POWE_EXTERN,NULL);
 //_delay_ms(750);
 
+// ustawienie wartoœci pocz¹tkowych
+przemieszaj = 5;
 regTemp = 40;
 idx.menu = menuG;
 idx.podMenu = 0;
@@ -154,15 +158,15 @@ while(1){
 //////////////////// jesli warunki spelnione zalcz grzalke
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	if(s1_flag == 1)
-	{	OCR1A=100;
+	{
 		if(0 == (sekundy%3))czujnik_cnt = search_sensors();					// szukanie sensorow
 		if(1 == (sekundy%3))DS18X20_start_meas(DS18X20_POWER_EXTERN,NULL);	// start pomiaru dla wszystkich sensorów
 		if(2 == (sekundy%3))
-		{	OCR1A=40;
-			if(idx.start == 1)heating();
+		{
+			if(idx.start == 1){heating();}
 			else grzalka_OFF;
 		}
-		// jesli wlaczone menu g³ówne odzyt i wyswietlenie zostanie przeprowadzone w nim
+		// jesli wlaczone menu g³ówne odczyt i wyswietlenie zostanie przeprowadzone w nim
 		// w innym wypatku zostanie przeprowadzone teraz bez wyswietlania
 		if(idx.menu == menuG)s1_flag =1;
 		else
@@ -172,6 +176,7 @@ while(1){
 
 		}
 	}
+	mieszanie();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////																////////////////////////
@@ -275,14 +280,39 @@ if(idx.menu == temp)
 ///////////																////////////////////////
 //////////			 3. MENU TRZECI EKRAN								////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
-if((idx.menu == dodatkowe) && i)
+if(idx.menu == dodatkowe)
 	{
+		if(i){
 
-		lcd_cls();
-		lcd_locate(0,0);
-		lcd_str("Mieszanie");
+			wskZmienna = &przemieszaj;
+			lcd_cls();
+			lcd_locate(0,0);
+			lcd_str("Mieszanie");
+			i = 0;
+		}
 
-		i = 0;
+		if(ms330_flag ==1)
+				{
+					if(idx.podMenu == 1)
+					 {
+						lcd_locate(1,15);
+						lcd_str("<");
+
+					 }
+					else
+					 {
+						lcd_locate(1,15);
+						lcd_str(" ");
+					 }
+					lcd_locate(1,0);
+					lcd_str("mieszaj co:");
+					lcd_locate(1,11);
+					lcd_int(przemieszaj);
+					lcd_locate(1,14);
+					lcd_str("s");
+					ms330_flag = 0;
+
+				}
 
 	}
 }	// klamra petli while
@@ -304,7 +334,7 @@ ISR(TIMER2_COMP_vect){
 	static uint8_t cnt = 0;				// statyczna zmienna do odlicznaia dziesietnych ms
 	if(cnt%33 == 0)ms330_flag = 1;		// ustawienie flagi 330ms
 	if(++cnt>100){
-		OCR1A+=10;
+
 		s1_flag = 1;					// ustawieni flagi sekundy
 		sekundy++;						// dodanie sekundy do licznika
 		if(sekundy>59)sekundy = 0;		// zerowanie licznika sekund po minucie
@@ -332,3 +362,13 @@ void heating (void){
 	else grzalka_OFF;
 
 }
+
+void mieszanie(void){
+	if((sekundy%przemieszaj) == 0){
+		OCR1A = 40;
+	}
+	if((sekundy%przemieszaj) == 1){
+		OCR1A = 15;
+	}
+}
+
