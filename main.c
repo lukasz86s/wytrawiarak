@@ -54,8 +54,8 @@ int main (void){
 		/* ustawienie fast PWM dla timera 1 10bit */
 	////////////////////////////////////////////////////////////////////////////////////////////////////////
 	TCCR1A |= ((1<<WGM12)|(1<<WGM11)|(1<<WGM10)|(1<<COM1A1));			//ustaw 10 bit i clear on top
-	TCCR1B |= (1<<CS12);										//preskaler 256
-	DDRB |= (1<<PB1);											// ustaw jako wyjscie pin oc1a
+	TCCR1B |= (1<<CS12);												//preskaler 256
+	DDRB |= (1<<PB1);													// ustaw jako wyjscie pin oc1a
 
 	OCR1A = 20;
 
@@ -176,7 +176,9 @@ while(1){
 
 		}
 	}
-	mieszanie();
+	if(idx.start == 1){
+		mieszanie();
+	}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////																////////////////////////
@@ -364,10 +366,10 @@ void heating (void){
 }
 
 void mieszanie(void){
-	if((sekundy%przemieszaj) == 0){
+	if((sekundy%(przemieszaj+2)) == 0){				// 2sekundy dondane na ruch serwa
 		OCR1A = 40;
 	}
-	if((sekundy%przemieszaj) == 1){
+	if((sekundy%(przemieszaj+2)) == 1){
 		OCR1A = 15;
 	}
 }
